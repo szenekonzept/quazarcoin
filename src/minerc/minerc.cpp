@@ -32,12 +32,12 @@ public:
   }
 
   bool findNonce(cryptonote::block& block, uint64_t height, cryptonote::difficulty_type difficulty, size_t threads, crypto::hash& hash) {
-    block.nonce = 0;
+    block.nonce = crypto::rand<uint32_t>();
     m_block = &block;
     m_difficulty = difficulty;
     m_hashes = 0;
     m_height = height;
-    m_nonce = 0;
+    m_nonce = crypto::rand<uint32_t>();
     m_nonceFound = false;
     m_startedThreads = 1;
     m_threads = threads;
@@ -57,7 +57,7 @@ public:
 
     std::chrono::steady_clock::time_point time2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(time2 - time1);
-    std::cout << "Hash rate: " << m_hashes / duration.count() << std::endl;
+    std::cout << "Hash rate: " << m_hashes / duration.count() << "\r" << std::endl;
     block.nonce = m_nonce;
     return m_nonceFound;
   }
@@ -75,7 +75,7 @@ private:
 
   crypto::hash threadProcedure() {
     cryptonote::block block = *m_block;
-    block.nonce = m_startedThreads++;
+    block.nonce = crypto::rand<uint32_t>(); // m_startedThreads++;
     return findNonce(block);
   }
 
@@ -92,7 +92,7 @@ private:
       }
 
       if (cryptonote::check_hash(hash, m_difficulty)) {
-        std::cout << "Nonce found." << std::endl;
+        std::cout << "Nonce found: " << block.nonce << std::endl;
         m_nonce = block.nonce;
         m_nonceFound = true;
         blockHash = hash;
@@ -109,7 +109,7 @@ private:
         break;
       }
 
-      block.nonce += static_cast<uint32_t>(m_threads);
+      block.nonce += 1; //static_cast<uint32_t>(m_threads);
     }
 
     return blockHash;
@@ -133,7 +133,7 @@ public:
 
     m_legacy2 = false;
     for (;;) {
-      std::cout << "Requesting block1..." << std::endl;
+      //std::cout << "Requesting block1..." << std::endl;
       while (!getBlockTemplate(m_block1, address1, wallet1, MERGE_MINING_TAG_RESERVED_SIZE, m_httpClient1)) {
         std::cout << "Failed to get block1" << std::endl;
       }
@@ -146,7 +146,7 @@ public:
           }
         }
       } else {
-        std::cout << "Requesting block2..." << std::endl;
+        //std::cout << "Requesting block2..." << std::endl;
         for (;;) {
           if (getBlockTemplate(m_block2, address2, wallet2, 0, m_httpClient2)) {
             if (m_block2.block.major_version != BLOCK_MAJOR_VERSION_2) {
@@ -168,14 +168,18 @@ public:
         }
       }
 
-      std::cout << "Mining..." << std::endl;
+      std::cout << "Mining (height=" << m_block2.height 
+                << ", diff=" << m_block2.difficulty
+                << " | donor: height=" << m_block1.height
+                << ", diff=" << m_block1.difficulty << ")" 
+                << std::endl;
       crypto::hash hash;
       if (m_miner.findNonce(m_block1.block, m_block1.height, std::min(m_block1.difficulty, m_block2.difficulty), threads, hash)) {
         if (cryptonote::check_hash(hash, m_block1.difficulty)) {
           if (submitBlock(m_block1.block, address1, m_httpClient1)) {
-            std::cout << "Submitted block1" << std::endl;
+            std::cout << "Submitted block to donor network at height " << m_block1.height << " diff " << m_block1.difficulty << std::endl;
           } else {
-            std::cout << "Failed to submit block1" << std::endl;
+            std::cout << "Failed to submit block to donor network" << std::endl;
           }
         }
 
@@ -187,9 +191,9 @@ public:
             }
 
             if (submitBlock(m_block2.block, address2, m_httpClient2)) {
-              std::cout << "Submitted block2" << std::endl;
+              std::cout << "Submitted block at height " << m_block2.height << " diff " << m_block2.difficulty << std::endl;
             } else {
-              std::cout << "Failed to submit block2" << std::endl;
+              std::cout << "Failed to submit block" << std::endl;
             }
           }
         }
