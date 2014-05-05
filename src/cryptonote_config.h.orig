@@ -11,15 +11,9 @@
 #define CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX         34 // addresses start with "2"
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
 #define CURRENT_TRANSACTION_VERSION                     1
-#define CURRENT_BLOCK_MAJOR_VERSION                     2
+#define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
-#define BLOCK_MAJOR_VERSION_1                           1
-#define BLOCK_MAJOR_VERSION_2                           2
-#define BLOCK_MINOR_VERSION_0                           0
-#define BLOCK_MINOR_VERSION_1                           1
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
-
-#define BLOCK_MAJOR_VERSION_2_HEIGHT                    1
 
 #define BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW               60
 

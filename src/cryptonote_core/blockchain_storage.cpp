@@ -351,6 +351,14 @@ difficulty_type blockchain_storage::get_difficulty_for_next_block()
   return next_difficulty(timestamps, commulative_difficulties);
 }
 //------------------------------------------------------------------
+uint8_t blockchain_storage::get_block_major_version_for_height(uint64_t height) const
+{
+  if (height < BLOCK_MAJOR_VERSION_2_HEIGHT)
+    return BLOCK_MAJOR_VERSION_1;
+  else
+    return BLOCK_MAJOR_VERSION_2;
+}
+//------------------------------------------------------------------
 bool blockchain_storage::rollback_blockchain_switching(std::list<block>& original_chain, size_t rollback_height)
 {
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
@@ -564,13 +572,27 @@ bool blockchain_storage::create_block_template(block& b, const account_public_ad
   uint64_t already_generated_coins;
 
   CRITICAL_REGION_BEGIN(m_blockchain_lock);
-  b.major_version = CURRENT_BLOCK_MAJOR_VERSION;
-  b.minor_version = CURRENT_BLOCK_MINOR_VERSION;
-  b.prev_id = get_tail_id();
-  b.timestamp = time(NULL);
+
   height = m_blocks.size();
   diffic = get_difficulty_for_next_block();
-  CHECK_AND_ASSERT_MES(diffic, false, "difficulty owverhead.");
+  CHECK_AND_ASSERT_MES(diffic, false, "difficulty overhead");
+
+  b = boost::value_initialized<block>();
+  b.major_version = get_block_major_version_for_height(height);
+  b.minor_version = BLOCK_MINOR_VERSION_0;
+
+  if(BLOCK_MAJOR_VERSION_2 == b.major_version)
+  {
+    b.parent_block.major_version = CURRENT_BYTECOIN_BLOCK_MAJOR_VERSION;
+    b.parent_block.minor_version = 0;
+    b.parent_block.number_of_transactions = 1;
+    tx_extra_merge_mining_tag mm_tag = AUTO_VAL_INIT(mm_tag);
+    bool r = append_mm_tag_to_extra(b.parent_block.miner_tx.extra, mm_tag);
+    CHECK_AND_ASSERT_MES(r, false, "Failed to append merge mining tag to extra of the parent block miner transaction");
+  }
+
+  b.prev_id = get_tail_id();
+  b.timestamp = time(NULL);
 
   median_size = m_current_block_cumul_sz_limit / 2;
   already_generated_coins = m_blocks.back().already_generated_coins;
@@ -707,9 +729,7 @@ bool blockchain_storage::handle_alternative_block(const block& b, const crypto::
     if(!m_checkpoints.is_in_checkpoint_zone(bei.height))
     {
       m_is_in_checkpoint_zone = false;
-      get_block_longhash(bei.bl, proof_of_work, bei.height);
-
-      if(!check_hash(proof_of_work, current_diff))
+      if(!check_proof_of_work(bei.bl, current_diff, proof_of_work))
       {
         LOG_PRINT_RED_L0("Block with id: " << id
           << ENDL << " for alternative chain, have not enough proof of work: " << proof_of_work
@@ -1051,7 +1071,12 @@ bool blockchain_storage::find_blockchain_supplement(const std::list<crypto::hash
   resp.total_height = get_current_blockchain_height();
   size_t count = 0;
   for(size_t i = resp.start_height; i != m_blocks.size() && count < BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT; i++, count++)
-    resp.m_block_ids.push_back(get_block_hash(m_blocks[i].bl));
+  {
+    crypto::hash h;
+    if(!get_block_hash(m_blocks[i].bl, h))
+      return false;
+    resp.m_block_ids.push_back(h);
+  }
   return true;
 }
 //------------------------------------------------------------------
@@ -1419,6 +1444,16 @@ bool blockchain_storage::handle_block_to_main_chain(const block& bl, const crypt
     return false;
   }
 
+  const uint8_t expected_block_version = get_block_major_version_for_height(get_current_blockchain_height());
+  if(expected_block_version != bl.major_version)
+  {
+    LOG_PRINT_L0("Block with id: " << id << ENDL
+      << "have wrong major version: " << static_cast<int>(bl.major_version) << ENDL
+      << "expected major version: " << static_cast<int>(expected_block_version));
+    bvc.m_verifivation_failed = true;
+    return false;
+  }
+
   if(!check_block_timestamp_main(bl))
   {
     LOG_PRINT_L0("Block with id: " << id << ENDL
@@ -1437,13 +1472,11 @@ bool blockchain_storage::handle_block_to_main_chain(const block& bl, const crypt
   crypto::hash proof_of_work = null_hash;
   if(!m_checkpoints.is_in_checkpoint_zone(get_current_blockchain_height()))
   {
-    proof_of_work = get_block_longhash(bl, m_blocks.size());
-
-    if(!check_hash(proof_of_work, current_diffic))
+    if (!check_proof_of_work(bl, current_diffic, proof_of_work))
     {
       LOG_PRINT_L0("Block with id: " << id << ENDL
         << "have not enough proof of work: " << proof_of_work << ENDL
-        << "nexpected difficulty: " << current_diffic );
+        << "expected difficulty: " << current_diffic);
       bvc.m_verifivation_failed = true;
       return false;
     }
@@ -1460,8 +1493,7 @@ bool blockchain_storage::handle_block_to_main_chain(const block& bl, const crypt
 
   if(!prevalidate_miner_transaction(bl, m_blocks.size()))
   {
-    LOG_PRINT_L0("Block with id: " << id
-      << " failed to pass prevalidation");
+    LOG_PRINT_L0("Block with id: " << id << " failed to pass prevalidation");
     bvc.m_verifivation_failed = true;
     return false;
   }

@@ -31,7 +31,7 @@ namespace cryptonote
   {
     const command_line::arg_descriptor<std::string> arg_extra_messages =  {"extra-messages-file", "Specify file for extra messages to include into coinbase transactions", "", true};
     const command_line::arg_descriptor<std::string> arg_start_mining =    {"start-mining", "Specify wallet address to mining for", "", true};
-    const command_line::arg_descriptor<uint32_t>      arg_mining_threads =  {"mining-threads", "Specify mining threads count", 0, true};
+    const command_line::arg_descriptor<uint32_t>    arg_mining_threads =  {"mining-threads", "Specify mining threads count", 0, true};
   }
 
 
@@ -63,6 +63,19 @@ namespace cryptonote
   {
     CRITICAL_REGION_LOCAL(m_template_lock);
     m_template = bl;
+
+    if(BLOCK_MAJOR_VERSION_2 == m_template.major_version)
+    {
+      cryptonote::tx_extra_merge_mining_tag mm_tag;
+      mm_tag.depth = 0;
+      if(!cryptonote::get_block_header_hash(m_template, mm_tag.merkle_root))
+        return false;
+
+      m_template.parent_block.miner_tx.extra.clear();
+      if(!cryptonote::append_mm_tag_to_extra(m_template.parent_block.miner_tx.extra, mm_tag))
+        return false;
+    }
+
     m_diffic = di;
     m_height = height;
     ++m_template_no;
@@ -331,11 +344,32 @@ namespace cryptonote
         continue;
       }
 
-      b.nonce = nonce;
       crypto::hash h;
-      get_block_longhash(b, h, height);
+      if(BLOCK_MAJOR_VERSION_1 == b.major_version)
+      {
+        b.nonce = nonce;
+        if(!get_block_longhash(b, h, height))
+        {
+          LOG_ERROR("Failed to get block long hash");
+          m_stop = true;
+        }
+      }
+      else if(BLOCK_MAJOR_VERSION_2 == b.major_version)
+      {
+        b.parent_block.nonce = nonce;
+        if(!get_bytecoin_block_longhash(b, h))
+        {
+          LOG_ERROR("Failed to get bytecoin block long hash");
+          m_stop = true;
+        }
+      }
+      else
+      {
+        LOG_ERROR("Unknown block major version: " << b.major_version);
+        m_stop = true;
+      }
 
-      if(check_hash(h, local_diff))
+      if(!m_stop && check_hash(h, local_diff))
       {
         //we lucky!
         ++m_config.current_extra_message_index;
@@ -349,6 +383,7 @@ namespace cryptonote
           epee::serialization::store_t_to_json_file(m_config, m_config_folder_path + "/" + MINER_CONFIG_FILE_NAME);
         }
       }
+
       nonce+=m_threads_total;
       ++m_hashes;
     }

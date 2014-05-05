@@ -56,6 +56,9 @@ namespace tools
     template<typename Base>
     struct wallet_error_base : public Base
     {
+      // This is necessary to compile with g++ 4.7.3, because of ~std::string() (m_loc) can throw an exception
+      ~wallet_error_base() throw() { }
+
       const std::string& location() const { return m_loc; }
 
       std::string to_string() const
@@ -97,6 +100,8 @@ namespace tools
       {
       }
 
+      ~failed_rpc_request() throw() { }
+
       const std::string& status() const { return m_status; }
 
       std::string to_string() const
@@ -128,6 +133,8 @@ namespace tools
         , m_tx(tx)
       {
       }
+
+      ~unexpected_txin_type() throw() { }
 
       const cryptonote::transaction& tx() const { return m_tx; }
 
@@ -166,6 +173,8 @@ namespace tools
       {
       }
 
+      ~file_error_base() throw() { }
+
       const std::string& file() const { return m_file; }
 
       std::string to_string() const { return wallet_logic_error::to_string(); }
@@ -193,7 +202,7 @@ namespace tools
     struct refresh_error : public wallet_logic_error
     {
     protected:
-      refresh_error(std::string&& loc, const std::string& message)
+      explicit refresh_error(std::string&& loc, const std::string& message)
         : wallet_logic_error(std::move(loc), message)
       {
       }
@@ -209,6 +218,8 @@ namespace tools
         , m_acc_keys(acc_keys)
       {
       }
+
+      ~acc_outs_lookup_error() throw() { }
 
       const cryptonote::transaction& tx() const { return m_tx; }
       const crypto::public_key& tx_pub_key() const { return m_tx_pub_key; }
@@ -236,6 +247,8 @@ namespace tools
       {
       }
 
+      ~block_parse_error() throw() { }
+
       const cryptonote::blobdata& block_blob() const { return m_block_blob; }
 
       std::string to_string() const { return refresh_error::to_string(); }
@@ -255,6 +268,8 @@ namespace tools
         , m_tx(tx)
       {
       }
+
+      ~tx_extra_parse_error() throw() { }
 
       const cryptonote::transaction& tx() const { return m_tx; }
 
@@ -278,6 +293,8 @@ namespace tools
       {
       }
 
+      ~tx_parse_error() throw() { }
+
       const cryptonote::blobdata& tx_blob() const { return m_tx_blob; }
 
       std::string to_string() const { return refresh_error::to_string(); }
@@ -289,7 +306,7 @@ namespace tools
     struct transfer_error : public wallet_logic_error
     {
     protected:
-      transfer_error(std::string&& loc, const std::string& message)
+      explicit transfer_error(std::string&& loc, const std::string& message)
         : wallet_logic_error(std::move(loc), message)
       {
       }
@@ -299,7 +316,7 @@ namespace tools
     //----------------------------------------------------------------------------------------------------
     struct not_enough_money : public transfer_error
     {
-      not_enough_money(std::string&& loc, uint64_t availbable, uint64_t tx_amount, uint64_t fee)
+      explicit not_enough_money(std::string&& loc, uint64_t availbable, uint64_t tx_amount, uint64_t fee)
         : transfer_error(std::move(loc), "not enough money")
         , m_available(availbable)
         , m_tx_amount(tx_amount)
@@ -338,6 +355,8 @@ namespace tools
       {
       }
 
+      ~not_enough_outs_to_mix() throw() { }
+
       const scanty_outs_t& scanty_outs() const { return m_scanty_outs; }
       size_t mixin_count() const { return m_mixin_count; }
 
@@ -369,6 +388,8 @@ namespace tools
         , m_unlock_time(unlock_time)
       {
       }
+
+      ~tx_not_constructed() throw() { }
 
       const sources_t& sources() const { return m_sources; }
       const destinations_t& destinations() const { return m_destinations; }
@@ -424,6 +445,8 @@ namespace tools
       {
       }
 
+      ~tx_rejected() throw() { }
+
       const cryptonote::transaction& tx() const { return m_tx; }
       const std::string& status() const { return m_status; }
 
@@ -443,12 +466,14 @@ namespace tools
     //----------------------------------------------------------------------------------------------------
     struct tx_sum_overflow : public transfer_error
     {
-      tx_sum_overflow(std::string&& loc, const std::vector<cryptonote::tx_destination_entry>& destinations, uint64_t fee)
+      explicit tx_sum_overflow(std::string&& loc, const std::vector<cryptonote::tx_destination_entry>& destinations, uint64_t fee)
         : transfer_error(std::move(loc), "transaction sum + fee exceeds " + cryptonote::print_money(std::numeric_limits<uint64_t>::max()))
         , m_destinations(destinations)
         , m_fee(fee)
       {
       }
+
+      ~tx_sum_overflow() throw() { }
 
       const std::vector<cryptonote::tx_destination_entry>& destinations() const { return m_destinations; }
       uint64_t fee() const { return m_fee; }
@@ -480,6 +505,8 @@ namespace tools
       {
       }
 
+      ~tx_too_big() throw() { }
+
       const cryptonote::transaction& tx() const { return m_tx; }
       uint64_t tx_size_limit() const { return m_tx_size_limit; }
 
@@ -509,6 +536,8 @@ namespace tools
     //----------------------------------------------------------------------------------------------------
     struct wallet_rpc_error : public wallet_logic_error
     {
+      ~wallet_rpc_error() throw() { }
+
       const std::string& request() const { return m_request; }
 
       std::string to_string() const
@@ -519,7 +548,7 @@ namespace tools
       }
 
     protected:
-      wallet_rpc_error(std::string&& loc, const std::string& message, const std::string& request)
+      explicit wallet_rpc_error(std::string&& loc, const std::string& message, const std::string& request)
         : wallet_logic_error(std::move(loc), message)
         , m_request(request)
       {
@@ -551,6 +580,8 @@ namespace tools
         : wallet_logic_error(std::move(loc), "file " + wallet_file + " does not correspond to " + keys_file)
       {
       }
+
+      ~wallet_files_doesnt_correspond() throw() { }
 
       const std::string& keys_file() const { return m_keys_file; }
       const std::string& wallet_file() const { return m_wallet_file; }

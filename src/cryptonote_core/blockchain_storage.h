@@ -83,6 +83,7 @@ namespace cryptonote
     crypto::hash get_tail_id();
     crypto::hash get_tail_id(uint64_t& height);
     difficulty_type get_difficulty_for_next_block();
+    uint8_t get_block_major_version_for_height(uint64_t height) const;
     bool add_new_block(const block& bl_, block_verification_context& bvc);
     bool reset_and_set_genesis_block(const block& b);
     bool create_block_template(block& b, const account_public_address& miner_address, difficulty_type& di, uint64_t& height, const blobdata& ex_nonce);

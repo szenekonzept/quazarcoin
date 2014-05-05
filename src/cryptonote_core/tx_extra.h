@@ -7,5 +7,8 @@
 
 
 #define TX_EXTRA_PADDING_MAX_COUNT          40
+#define TX_EXTRA_NONCE_MAX_SIZE             255
+
 #define TX_EXTRA_TAG_PUBKEY                 0x01
 #define TX_EXTRA_NONCE                      0x02
+#define TX_EXTRA_MERGE_MINING_TAG           0x03

@@ -134,8 +134,27 @@ namespace boost
     a & b.prev_id;
     a & b.nonce;
     //------------------
+    if (BLOCK_MAJOR_VERSION_2 <= b.major_version)
+    {
+      a & b.parent_block;
+    }
+    //------------------
     a & b.miner_tx;
     a & b.tx_hashes;
+  }
+
+
+  template <class Archive>
+  inline void serialize(Archive &a, cryptonote::bytecoin_block &b, const boost::serialization::version_type ver)
+  {
+    a & b.major_version;
+    a & b.minor_version;
+    a & b.prev_id;
+    a & b.nonce;
+    a & b.number_of_transactions;
+    a & b.miner_tx_branch;
+    a & b.miner_tx;
+    a & b.blockchain_branch;
   }
 }
 }

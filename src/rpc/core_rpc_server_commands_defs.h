@@ -318,6 +318,24 @@ namespace cryptonote
     };
   };
 
+  struct COMMAND_RPC_GET_CURRENCY_ID
+  {
+    struct request
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::string currency_id_blob;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(currency_id_blob)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
   struct COMMAND_RPC_SUBMITBLOCK
   {
     typedef std::vector<std::string> request;

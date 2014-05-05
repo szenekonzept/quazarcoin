@@ -40,7 +40,6 @@ namespace cryptonote
      virtual bool handle_block_found( block& b);
      virtual bool get_block_template(block& b, const account_public_address& adr, difficulty_type& diffic, uint64_t& height, const blobdata& ex_nonce);
 
-
      miner& get_miner(){return m_miner;}
      static void init_options(boost::program_options::options_description& desc);
      bool init(const boost::program_options::variables_map& vm);

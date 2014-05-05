@@ -19,6 +19,7 @@ namespace cryptonote
   {
     virtual bool handle_block_found(block& b) = 0;
     virtual bool get_block_template(block& b, const account_public_address& adr, difficulty_type& diffic, uint64_t& height, const blobdata& ex_nonce) = 0;
+
   protected:
     ~i_miner_handler(){};
   };
