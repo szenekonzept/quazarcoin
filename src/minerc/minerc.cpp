@@ -6,6 +6,8 @@
 #include "cryptonote_core/cryptonote_format_utils.h"
 #include "rpc/core_rpc_server_commands_defs.h"
 
+#include "minerc.h"
+
 struct BlockTemplate {
   cryptonote::block block;
   uint64_t height;
@@ -29,6 +31,14 @@ public:
 
   void stop() {
     m_stopped = true;
+  }
+
+  bool is_running() {
+      return !m_stopped;
+  }
+
+  double get_hashrate() {
+      return m_hashrate;
   }
 
   bool findNonce(cryptonote::block& block, uint64_t height, cryptonote::difficulty_type difficulty, size_t threads, crypto::hash& hash) {
@@ -57,7 +67,8 @@ public:
 
     std::chrono::steady_clock::time_point time2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(time2 - time1);
-    std::cout << "Hash rate: " << m_hashes / duration.count() << "\r" << std::endl;
+    m_hashrate = m_hashes / duration.count();
+    std::cout << "Hash rate: " << m_hashrate << "\r" << std::endl;
     block.nonce = m_nonce;
     return m_nonceFound;
   }
@@ -66,6 +77,7 @@ private:
   cryptonote::block* m_block;
   cryptonote::difficulty_type m_difficulty;
   std::atomic<uint64_t> m_hashes;
+  std::atomic<double> m_hashrate;
   uint64_t m_height;
   std::atomic<uint32_t> m_nonce;
   std::atomic<bool> m_nonceFound;
@@ -132,7 +144,7 @@ public:
     }
 
     m_legacy2 = false;
-    for (;;) {
+    for (;m_miner.is_running();) {
       //std::cout << "Requesting block1..." << std::endl;
       while (!getBlockTemplate(m_block1, address1, wallet1, MERGE_MINING_TAG_RESERVED_SIZE, m_httpClient1)) {
         std::cout << "Failed to get block1" << std::endl;
@@ -199,6 +211,16 @@ public:
         }
       }
     }
+
+    return true;
+  }
+
+  void stop() {
+      m_miner.stop();
+  }
+
+  double getHashRate() {
+      return m_miner.get_hashrate();
   }
 
 private:
@@ -302,6 +324,28 @@ private:
   }
 };
 
+MinerHandle::MinerHandle() {
+    impl = new Minerc();
+}
+
+MinerHandle::~MinerHandle() {
+    if (NULL != impl)
+        delete impl;
+}
+
+bool MinerHandle::StartMining(const std::string& address1, const std::string& address2, size_t threads, const std::string& wallet1, const std::string& wallet2) {
+    return impl->mine(address1, address2, threads, wallet1, wallet2);
+}
+
+void MinerHandle::StopMining() {
+    return impl->stop();
+}
+
+double MinerHandle::GetHashRate() {
+    return impl->getHashRate();
+}
+
+#ifndef GUI
 int main(int argc, char* argv[], char* envp[]) {
   std::string node1;
   std::string node2;
@@ -340,3 +384,4 @@ int main(int argc, char* argv[], char* envp[]) {
 
   return 0;
 }
+#endif

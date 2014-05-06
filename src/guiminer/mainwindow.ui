@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>911</width>
+    <height>336</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>FantomCoin merged miner</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <widget class="QRadioButton" name="radioButtonBCN">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>20</y>
+      <width>141</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Bytecoin (BCN)</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radioButtonBMR">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>90</y>
+      <width>151</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>BitMonero (BMR)</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="checkBoxFCN">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>160</y>
+      <width>161</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>FantomCoin (FCN)</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditBCN">
+    <property name="geometry">
+     <rect>
+      <x>46</x>
+      <y>50</y>
+      <width>851</width>
+      <height>27</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditBMR">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>46</x>
+      <y>120</y>
+      <width>851</width>
+      <height>27</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditFCN">
+    <property name="geometry">
+     <rect>
+      <x>46</x>
+      <y>190</y>
+      <width>851</width>
+      <height>27</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonStart">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>237</y>
+      <width>251</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Start</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="spinBoxThreads">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>237</y>
+      <width>81</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>48</x>
+      <y>240</y>
+      <width>151</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Threads</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>911</width>
+     <height>25</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+ <designerdata>
+  <property name="gridDeltaX">
+   <number>10</number>
+  </property>
+  <property name="gridDeltaY">
+   <number>10</number>
+  </property>
+  <property name="gridSnapX">
+   <bool>true</bool>
+  </property>
+  <property name="gridSnapY">
+   <bool>true</bool>
+  </property>
+  <property name="gridVisible">
+   <bool>true</bool>
+  </property>
+ </designerdata>
+</ui>
