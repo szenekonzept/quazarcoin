@@ -1,3 +1,11 @@
+Release notes -> FCN
+
+- emission curve moved to (>> 22)
+- src/minerc - merged mining implementation (with BCN or BMR)
+- src/guiminer - wrapper around src/minerc
+
+Note: to build guiminer you have to build everything else in Release mode
+
 Release notes -> BMR
 
 - forked for Bitmonero project
