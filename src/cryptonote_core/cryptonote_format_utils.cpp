@@ -77,7 +77,7 @@ namespace cryptonote
     }
     block_reward += fee;
 
-    std::vector<size_t> out_amounts;
+    std::vector<uint64_t> out_amounts;
     decompose_amount_into_digits(block_reward, DEFAULT_FEE,
       [&out_amounts](uint64_t a_chunk) { out_amounts.push_back(a_chunk); },
       [&out_amounts](uint64_t a_dust) { out_amounts.push_back(a_dust); });
@@ -89,7 +89,7 @@ namespace cryptonote
       out_amounts.resize(out_amounts.size() - 1);
     }
 
-    size_t summary_amounts = 0;
+    uint64_t summary_amounts = 0;
     for (size_t no = 0; no < out_amounts.size(); no++)
     {
       crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);;
