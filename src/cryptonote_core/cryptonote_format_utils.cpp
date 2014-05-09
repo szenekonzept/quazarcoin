@@ -62,8 +62,8 @@ namespace cryptonote
 
     keypair txkey = keypair::generate();
     add_tx_pub_key_to_extra(tx, txkey.pub);
-    if(extra_nonce.size())
-      if(!add_tx_extra_nonce(tx, extra_nonce))
+    if(!extra_nonce.empty())
+      if(!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce))
         return false;
 
     txin_gen in;
@@ -75,6 +75,10 @@ namespace cryptonote
       LOG_PRINT_L0("Block is too big");
       return false;
     }
+#if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
+    LOG_PRINT_L1("Creating block template: reward " << block_reward <<
+      ", fee " << fee)
+#endif
     block_reward += fee;
 
     std::vector<uint64_t> out_amounts;
@@ -205,83 +209,50 @@ namespace cryptonote
     return r;
   }
   //---------------------------------------------------------------
-  crypto::public_key get_tx_pub_key_from_extra(const transaction& tx)
+  bool parse_tx_extra(const std::vector<uint8_t>& tx_extra, std::vector<tx_extra_field>& tx_extra_fields)
   {
-    crypto::public_key pk = null_pkey;
-    parse_and_validate_tx_extra(tx, pk);
-    return pk;
-  }
-  //---------------------------------------------------------------
-  bool parse_and_validate_tx_extra(const transaction& tx, crypto::public_key& tx_pub_key, tx_extra_merge_mining_tag& mm_tag, bool& mm_tag_found)
-  {
-    tx_pub_key = null_pkey;
-    bool padding_started = false; //let the padding goes only at the end
-    bool tx_extra_tag_pubkey_found = false;
-    bool tx_extra_extra_nonce_found = false;
-    mm_tag_found = false;
-    for(size_t i = 0; i != tx.extra.size();)
-    {
-      if(padding_started)
-      {
-        CHECK_AND_ASSERT_MES(!tx.extra[i], false, "Failed to parse transaction extra (not 0 after padding) in tx " << get_transaction_hash(tx));
-      }
-      else if(tx.extra[i] == TX_EXTRA_TAG_PUBKEY)
-      {
-        CHECK_AND_ASSERT_MES(sizeof(crypto::public_key) <= tx.extra.size()-1-i, false, "Failed to parse transaction extra (TX_EXTRA_TAG_PUBKEY have not enough bytes) in tx " << get_transaction_hash(tx));
-        CHECK_AND_ASSERT_MES(!tx_extra_tag_pubkey_found, false, "Failed to parse transaction extra (duplicate TX_EXTRA_TAG_PUBKEY entry) in tx " << get_transaction_hash(tx));
-        tx_pub_key = *reinterpret_cast<const crypto::public_key*>(&tx.extra[i+1]);
-        i += 1 + sizeof(crypto::public_key);
-        tx_extra_tag_pubkey_found = true;
-        continue;
-      }else if(tx.extra[i] == TX_EXTRA_NONCE)
-      {
-        //CHECK_AND_ASSERT_MES(is_coinbase(tx), false, "Failed to parse transaction extra (TX_EXTRA_NONCE can be only in coinbase) in tx " << get_transaction_hash(tx));
-        CHECK_AND_ASSERT_MES(!tx_extra_extra_nonce_found, false, "Failed to parse transaction extra (duplicate TX_EXTRA_NONCE entry) in tx " << get_transaction_hash(tx));
-        CHECK_AND_ASSERT_MES(i + 1 < tx.extra.size(), false, "Failed to parse transaction extra (TX_EXTRA_NONCE have not enough bytes) in tx " << get_transaction_hash(tx));
-        ++i;
-        CHECK_AND_ASSERT_MES(tx.extra.size()-1-i >= tx.extra[i], false, "Failed to parse transaction extra (TX_EXTRA_NONCE have wrong bytes counter) in tx " << get_transaction_hash(tx));
-        tx_extra_extra_nonce_found = true;
-        i += tx.extra[i];//actually don't need to extract it now, just skip
-      }else if (tx.extra[i] == TX_EXTRA_MERGE_MINING_TAG)
-      {
-        CHECK_AND_ASSERT_MES(!mm_tag_found, false, "Failed to parse transaction extra (duplicate TX_EXTRA_MERGE_MINING_TAG entry) in tx " << get_transaction_hash(tx));
-        CHECK_AND_ASSERT_MES(i + 1 < tx.extra.size(), false, "Failed to parse transaction extra (TX_EXTRA_MERGE_MINING_TAG have not enough bytes) in tx " << get_transaction_hash(tx));
-        ++i;
-        size_t size;
-        int read = tools::read_varint(tx.extra.begin() + i, tx.extra.end(), size);
-        CHECK_AND_ASSERT_MES(0 < read, false, "Failed to parse transaction extra (TX_EXTRA_MERGE_MINING_TAG has invalid format) in tx " << get_transaction_hash(tx));
-        i += read;
+    tx_extra_fields.clear();
 
-        CHECK_AND_ASSERT_MES(i + size <= tx.extra.size(), false, "Failed to parse transaction extra (TX_EXTRA_MERGE_MINING_TAG have not enough bytes) in tx " << get_transaction_hash(tx));
-        std::string blob(reinterpret_cast<const char*>(tx.extra.data() + i), size);
-        bool r = ::serialization::parse_binary(blob, mm_tag);
-        CHECK_AND_ASSERT_MES(r, false, "Failed to parse transaction extra (TX_EXTRA_MERGE_MINING_TAG has invalid format) in tx " << get_transaction_hash(tx));
-        mm_tag_found = true;
-        i += size - 1;
-      }
-      else if(!tx.extra[i])
-      {
-        padding_started = true;
-        continue;
-      }
-      ++i;
+    if(tx_extra.empty())
+      return true;
+
+    std::string extra_str(reinterpret_cast<const char*>(tx_extra.data()), tx_extra.size());
+    std::istringstream iss(extra_str);
+    binary_archive<false> ar(iss);
+
+    bool eof = false;
+    while (!eof)
+    {
+      tx_extra_field field;
+      bool r = ::do_serialize(ar, field);
+      CHECK_AND_NO_ASSERT_MES(r, false, "failed to deserialize extra field. extra = " << string_tools::buff_to_hex_nodelimer(std::string(reinterpret_cast<const char*>(tx_extra.data()), tx_extra.size())));
+      tx_extra_fields.push_back(field);
+
+      std::ios_base::iostate state = iss.rdstate();
+      eof = (EOF == iss.peek());
+      iss.clear(state);
     }
+    CHECK_AND_NO_ASSERT_MES(::serialization::check_stream_state(ar), false, "failed to deserialize extra field. extra = " << string_tools::buff_to_hex_nodelimer(std::string(reinterpret_cast<const char*>(tx_extra.data()), tx_extra.size())));
+
     return true;
   }
   //---------------------------------------------------------------
-  bool parse_and_validate_tx_extra(const transaction& tx, crypto::public_key& tx_pub_key)
+  crypto::public_key get_tx_pub_key_from_extra(const std::vector<uint8_t>& tx_extra)
   {
-    tx_extra_merge_mining_tag mm_tag;
-    bool mm_tag_found;
-    return parse_and_validate_tx_extra(tx, tx_pub_key, mm_tag, mm_tag_found);
+    std::vector<tx_extra_field> tx_extra_fields;
+    if (!parse_tx_extra(tx_extra, tx_extra_fields))
+      return null_pkey;
+
+    tx_extra_pub_key pub_key_field;
+    if(!find_tx_extra_field_by_type(tx_extra_fields, pub_key_field))
+      return null_pkey;
+
+    return pub_key_field.pub_key;
   }
   //---------------------------------------------------------------
-  bool parse_and_validate_tx_extra(const transaction& tx, tx_extra_merge_mining_tag& mm_tag)
+  crypto::public_key get_tx_pub_key_from_extra(const transaction& tx)
   {
-    crypto::public_key tx_pub_key;
-    bool mm_tag_found;
-    bool r = parse_and_validate_tx_extra(tx, tx_pub_key, mm_tag, mm_tag_found);
-    return r && mm_tag_found;
+    return get_tx_pub_key_from_extra(tx.extra);
   }
   //---------------------------------------------------------------
   bool add_tx_pub_key_to_extra(transaction& tx, const crypto::public_key& tx_pub_key)
@@ -292,19 +263,19 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool add_tx_extra_nonce(transaction& tx, const blobdata& extra_nonce)
+  bool add_extra_nonce_to_tx_extra(std::vector<uint8_t>& tx_extra, const blobdata& extra_nonce)
   {
     CHECK_AND_ASSERT_MES(extra_nonce.size() <= TX_EXTRA_NONCE_MAX_SIZE, false, "extra nonce could be 255 bytes max");
-    size_t start_pos = tx.extra.size();
-    tx.extra.resize(tx.extra.size() + 2 + extra_nonce.size());
+    size_t start_pos = tx_extra.size();
+    tx_extra.resize(tx_extra.size() + 2 + extra_nonce.size());
     //write tag
-    tx.extra[start_pos] = TX_EXTRA_NONCE;
+    tx_extra[start_pos] = TX_EXTRA_NONCE;
     //write len
     ++start_pos;
-    tx.extra[start_pos] = static_cast<uint8_t>(extra_nonce.size());
+    tx_extra[start_pos] = static_cast<uint8_t>(extra_nonce.size());
     //write data
     ++start_pos;
-    memcpy(&tx.extra[start_pos], extra_nonce.data(), extra_nonce.size());
+    memcpy(&tx_extra[start_pos], extra_nonce.data(), extra_nonce.size());
     return true;
   }
   //---------------------------------------------------------------
@@ -315,21 +286,47 @@ namespace cryptonote
       return false;
 
     tx_extra.push_back(TX_EXTRA_MERGE_MINING_TAG);
-    tools::write_varint(std::back_inserter(tx_extra), blob.size());
     std::copy(reinterpret_cast<const uint8_t*>(blob.data()), reinterpret_cast<const uint8_t*>(blob.data() + blob.size()), std::back_inserter(tx_extra));
     return true;
   }
   //---------------------------------------------------------------
-  bool construct_tx(const account_keys& sender_account_keys, const std::vector<tx_source_entry>& sources, const std::vector<tx_destination_entry>& destinations, transaction& tx, uint64_t unlock_time)
+  bool get_mm_tag_from_extra(const std::vector<uint8_t>& tx_extra, tx_extra_merge_mining_tag& mm_tag)
+  {
+    std::vector<tx_extra_field> tx_extra_fields;
+    if (!parse_tx_extra(tx_extra, tx_extra_fields))
+      return false;
+
+    return find_tx_extra_field_by_type(tx_extra_fields, mm_tag);
+  }
+  //---------------------------------------------------------------
+  void set_payment_id_to_tx_extra_nonce(blobdata& extra_nonce, const crypto::hash& payment_id)
+  {
+    extra_nonce.clear();
+    extra_nonce.push_back(TX_EXTRA_NONCE_PAYMENT_ID);
+    const uint8_t* payment_id_ptr = reinterpret_cast<const uint8_t*>(&payment_id);
+    std::copy(payment_id_ptr, payment_id_ptr + sizeof(payment_id), std::back_inserter(extra_nonce));
+  }
+  //---------------------------------------------------------------
+  bool get_payment_id_from_tx_extra_nonce(const blobdata& extra_nonce, crypto::hash& payment_id)
+  {
+    if(sizeof(crypto::hash) + 1 != extra_nonce.size())
+      return false;
+    if(TX_EXTRA_NONCE_PAYMENT_ID != extra_nonce[0])
+      return false;
+    payment_id = *reinterpret_cast<const crypto::hash*>(extra_nonce.data() + 1);
+    return true;
+  }
+  //---------------------------------------------------------------
+  bool construct_tx(const account_keys& sender_account_keys, const std::vector<tx_source_entry>& sources, const std::vector<tx_destination_entry>& destinations, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time)
   {
     tx.vin.clear();
     tx.vout.clear();
     tx.signatures.clear();
-    tx.extra.clear();
 
     tx.version = CURRENT_TRANSACTION_VERSION;
     tx.unlock_time = unlock_time;
 
+    tx.extra = extra;
     keypair txkey = keypair::generate();
     add_tx_pub_key_to_extra(tx, txkey.pub);
 
@@ -551,7 +548,10 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& money_transfered)
   {
-    return lookup_acc_outs(acc, tx, get_tx_pub_key_from_extra(tx), outs, money_transfered);
+    crypto::public_key tx_pub_key = get_tx_pub_key_from_extra(tx);
+    if(null_pkey == tx_pub_key)
+      return false;
+    return lookup_acc_outs(acc, tx, tx_pub_key, outs, money_transfered);
   }
   //---------------------------------------------------------------
   bool lookup_acc_outs(const account_keys& acc, const transaction& tx, const crypto::public_key& tx_pub_key, std::vector<size_t>& outs, uint64_t& money_transfered)
@@ -834,7 +834,7 @@ namespace cryptonote
       return false;
 
     tx_extra_merge_mining_tag mm_tag;
-    if (!parse_and_validate_tx_extra(bl.parent_block.miner_tx, mm_tag))
+    if (!get_mm_tag_from_extra(bl.parent_block.miner_tx.extra, mm_tag))
     {
       LOG_ERROR("merge mining tag wasn't found in extra of the parent block miner transaction");
       return false;

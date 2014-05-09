@@ -33,7 +33,7 @@ namespace cryptonote
 
   // Implemented in cryptonote_format_utils.cpp
   bool get_transaction_hash(const transaction& t, crypto::hash& res);
-  bool parse_and_validate_tx_extra(const transaction& tx, tx_extra_merge_mining_tag& mm_tag);
+  bool get_mm_tag_from_extra(const std::vector<uint8_t>& tx, tx_extra_merge_mining_tag& mm_tag);
 
   const static crypto::hash null_hash = AUTO_VAL_INIT(null_hash);
   const static crypto::public_key null_pkey = AUTO_VAL_INIT(null_pkey);
@@ -249,17 +249,6 @@ namespace cryptonote
     return boost::apply_visitor(txin_signature_size_visitor(), tx_in);
   }
 
-  struct tx_extra_merge_mining_tag
-  {
-    size_t depth;
-    crypto::hash merkle_root;
-
-    BEGIN_SERIALIZE_OBJECT()
-      VARINT_FIELD(depth)
-      FIELD(merkle_root)
-    END_SERIALIZE()
-  };
-
   /************************************************************************/
   /*                                                                      */
   /************************************************************************/
@@ -333,7 +322,7 @@ namespace cryptonote
         FIELD(b.miner_tx);
 
         tx_extra_merge_mining_tag mm_tag;
-        if (!parse_and_validate_tx_extra(b.miner_tx, mm_tag))
+        if (!get_mm_tag_from_extra(b.miner_tx.extra, mm_tag))
           return false;
 
         ar.tag("blockchain_branch");
