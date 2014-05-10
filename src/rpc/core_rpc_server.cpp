@@ -331,7 +331,7 @@ namespace cryptonote
       return false;
     }
 
-    if(req.reserve_size > TX_EXTRA_NONCE_MAX_SIZE)
+    if(req.reserve_size > TX_EXTRA_NONCE_MAX_COUNT)
     {
       error_resp.code = CORE_RPC_ERROR_CODE_TOO_BIG_RESERVE_SIZE;
       error_resp.message = "To big reserved size, maximum 255";

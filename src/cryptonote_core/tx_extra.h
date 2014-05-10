@@ -6,7 +6,7 @@
 
 
 #define TX_EXTRA_PADDING_MAX_COUNT          255
-#define TX_EXTRA_NONCE_MAX_SIZE             255
+#define TX_EXTRA_NONCE_MAX_COUNT            255
 
 #define TX_EXTRA_TAG_PADDING                0x00
 #define TX_EXTRA_TAG_PUBKEY                 0x01
@@ -79,7 +79,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       FIELD(nonce)
-      if(TX_EXTRA_NONCE_MAX_SIZE < nonce.size()) return false;
+      if(TX_EXTRA_NONCE_MAX_COUNT < nonce.size()) return false;
     END_SERIALIZE()
   };
 
