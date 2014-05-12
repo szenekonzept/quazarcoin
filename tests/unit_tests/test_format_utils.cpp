@@ -47,7 +47,7 @@ TEST(parse_tx_extra, handles_padding_only_max_size)
   ASSERT_TRUE(cryptonote::parse_tx_extra(extra, tx_extra_fields));
   ASSERT_EQ(1, tx_extra_fields.size());
   ASSERT_EQ(typeid(cryptonote::tx_extra_padding), tx_extra_fields[0].type());
-  ASSERT_EQ(TX_EXTRA_NONCE_MAX_SIZE, boost::get<cryptonote::tx_extra_padding>(tx_extra_fields[0]).size);
+  ASSERT_EQ(TX_EXTRA_NONCE_MAX_COUNT, boost::get<cryptonote::tx_extra_padding>(tx_extra_fields[0]).size);
 }
 
 TEST(parse_tx_extra, handles_padding_only_exceed_max_size)
@@ -118,7 +118,7 @@ TEST(parse_and_validate_tx_extra, fails_on_big_extra_nonce)
   cryptonote::transaction tx = AUTO_VAL_INIT(tx);
   cryptonote::account_base acc;
   acc.generate();
-  cryptonote::blobdata b(TX_EXTRA_NONCE_MAX_SIZE + 1, 0);
+  cryptonote::blobdata b(TX_EXTRA_NONCE_MAX_COUNT + 1, 0);
   ASSERT_FALSE(cryptonote::construct_miner_tx(0, 0, 10000000000000, 1000, DEFAULT_FEE, acc.get_keys().m_account_address, tx, b, 1));
 }
 TEST(parse_and_validate_tx_extra, fails_on_wrong_size_in_extra_nonce)
