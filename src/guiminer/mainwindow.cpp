@@ -42,9 +42,12 @@ void MainWindow::on_pushButtonStart_clicked()
     if (ui->radioButtonBCN->isChecked()) {
         donorNode = "127.0.0.1:8081";
         donorAddress = ui->lineEditBCN->text().toStdString();
-    } else {
+    } else if (ui->radioButtonBMR->isChecked()) {
         donorNode = "127.0.0.1:18081";
         donorAddress = ui->lineEditBMR->text().toStdString();
+    } else if (ui->radioButtonQCN->isChecked()) {
+        donorNode = "127.0.0.1:23081";
+        donorAddress = ui->lineEditQCN->text().toStdString();
     }
 
     Node = "127.0.0.1:24081";
@@ -78,11 +81,9 @@ void MainWindow::on_pushButtonStart_clicked()
 void MainWindow::on_radioButtonBMR_clicked()
 {
     if (ui->radioButtonBMR->isChecked()) {
-        ui->lineEditBMR->setEnabled(true);
         ui->lineEditBCN->setEnabled(false);
-    } else {
-        ui->lineEditBMR->setEnabled(false);
-        ui->lineEditBCN->setEnabled(true);
+        ui->lineEditBMR->setEnabled(true);
+        ui->lineEditQCN->setEnabled(false);
     }
 }
 
@@ -91,9 +92,7 @@ void MainWindow::on_radioButtonBCN_clicked()
     if (ui->radioButtonBCN->isChecked()) {
         ui->lineEditBCN->setEnabled(true);
         ui->lineEditBMR->setEnabled(false);
-    } else {
-        ui->lineEditBCN->setEnabled(false);
-        ui->lineEditBMR->setEnabled(true);
+        ui->lineEditQCN->setEnabled(false);
     }
 }
 
@@ -105,5 +104,14 @@ void MainWindow::on_checkBoxFCN_clicked()
     } else {
         ui->lineEditFCN->setEnabled(false);
         ui->pushButtonStart->setEnabled(false);
+    }
+}
+
+void MainWindow::on_radioButtonQCN_clicked()
+{
+    if (ui->radioButtonQCN->isChecked()) {
+        ui->lineEditBCN->setEnabled(false);
+        ui->lineEditBMR->setEnabled(false);
+        ui->lineEditQCN->setEnabled(true);
     }
 }

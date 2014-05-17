@@ -71,6 +71,8 @@ private slots:
 
     void on_checkBoxFCN_clicked();
 
+    void on_radioButtonQCN_clicked();
+
 private:
     Ui::MainWindow *ui;
     thread_mining *pThreadMining;

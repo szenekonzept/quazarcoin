@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>911</width>
-    <height>336</height>
+    <height>421</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Bytecoin (BCN)</string>
+     <string>ByteCoin (BCN)</string>
     </property>
     <property name="checked">
      <bool>true</bool>
@@ -50,7 +50,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>160</y>
+      <y>240</y>
       <width>161</width>
       <height>22</height>
      </rect>
@@ -92,7 +92,7 @@
     <property name="geometry">
      <rect>
       <x>46</x>
-      <y>190</y>
+      <y>270</y>
       <width>851</width>
       <height>27</height>
      </rect>
@@ -102,7 +102,7 @@
     <property name="geometry">
      <rect>
       <x>290</x>
-      <y>237</y>
+      <y>317</y>
       <width>251</width>
       <height>27</height>
      </rect>
@@ -115,7 +115,7 @@
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>237</y>
+      <y>317</y>
       <width>81</width>
       <height>27</height>
      </rect>
@@ -128,13 +128,42 @@
     <property name="geometry">
      <rect>
       <x>48</x>
-      <y>240</y>
+      <y>320</y>
       <width>151</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
      <string>Threads</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditQCN">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>46</x>
+      <y>190</y>
+      <width>851</width>
+      <height>27</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radioButtonQCN">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>160</y>
+      <width>181</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>QuazarCoin (QCN)</string>
+    </property>
+    <property name="checked">
+     <bool>false</bool>
     </property>
    </widget>
   </widget>
