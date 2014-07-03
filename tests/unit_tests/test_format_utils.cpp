@@ -130,16 +130,33 @@ TEST(parse_and_validate_tx_extra, fails_on_wrong_size_in_extra_nonce)
   std::vector<cryptonote::tx_extra_field> tx_extra_fields;
   ASSERT_FALSE(cryptonote::parse_tx_extra(tx.extra, tx_extra_fields));
 }
+
+template <typename T>
+T ipow(T base, T exp)
+{
+  T result = 1;
+  while (exp)
+  {
+    if (exp & 1)
+      result *= base;
+    exp >>= 1;
+    base *= base;
+  }
+  return result;
+}
+
 TEST(validate_parse_amount_case, validate_parse_amount)
 {
   uint64_t res = 0;
+  uint64_t fraction0001 = ipow<uint64_t>(10, CRYPTONOTE_DISPLAY_DECIMAL_POINT - 4);
+
   bool r = cryptonote::parse_amount(res, "0.0001");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 10000);
+  ASSERT_EQ(res, fraction0001);
 
   r = cryptonote::parse_amount(res, "100.0001");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 10000010000);
+  ASSERT_EQ(res, 100 * COIN + fraction0001);
 
   r = cryptonote::parse_amount(res, "000.0000");
   ASSERT_TRUE(r);
@@ -152,11 +169,11 @@ TEST(validate_parse_amount_case, validate_parse_amount)
 
   r = cryptonote::parse_amount(res, "   100.0001    ");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 10000010000);
+  ASSERT_EQ(res, 100 * COIN + fraction0001);
 
   r = cryptonote::parse_amount(res, "   100.0000    ");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 10000000000);
+  ASSERT_EQ(res, 100 * COIN);
 
   r = cryptonote::parse_amount(res, "   100. 0000    ");
   ASSERT_FALSE(r);
