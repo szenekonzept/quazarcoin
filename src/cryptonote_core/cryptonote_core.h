@@ -89,6 +89,7 @@ namespace cryptonote
      std::string print_pool(bool short_format);
      void print_blockchain_outs(const std::string& file);
      void on_synchronized();
+     void notify_new_block(const block& b);
 
      void set_target_blockchain_height(uint64_t target_blockchain_height);
      uint64_t get_target_blockchain_height() const;
