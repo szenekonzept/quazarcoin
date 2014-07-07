@@ -111,21 +111,46 @@ namespace
     ASSERT_FALSE(m_block_not_too_big);
   }
 
-  TEST_F(block_reward_and_current_block_size, fails_on_huge_median_size)
+  TEST_F(block_reward_and_current_block_size, handles_big_median)
   {
-#if !defined(NDEBUG)
-    size_t huge_size = std::numeric_limits<uint32_t>::max() + UINT64_C(2);
-    ASSERT_DEATH(do_test(huge_size, huge_size + 1), "");
-#endif
+    size_t block_size = 0;
+    size_t median = std::numeric_limits<uint32_t>::max();
+
+    do_test(median, block_size);
+    ASSERT_TRUE(m_block_not_too_big);
+    ASSERT_EQ(m_block_reward, m_standard_block_reward);
   }
 
-  TEST_F(block_reward_and_current_block_size, fails_on_huge_block_size)
+  TEST_F(block_reward_and_current_block_size, handles_big_block_size_ok)
   {
-#if !defined(NDEBUG)
-    size_t huge_size = std::numeric_limits<uint32_t>::max() + UINT64_C(2);
-    ASSERT_DEATH(do_test(huge_size - 2, huge_size), "");
-#endif
+    size_t block_size = std::numeric_limits<uint32_t>::max();
+    size_t median = block_size / 2 + 1;
+
+    do_test(median, block_size);
+    ASSERT_TRUE(m_block_not_too_big);
+    ASSERT_LT(m_block_reward, m_standard_block_reward);
   }
+
+  TEST_F(block_reward_and_current_block_size, handles_big_block_size_fail)
+  {
+    size_t block_size = std::numeric_limits<uint32_t>::max();
+    size_t median = block_size / 2 - 1;
+
+    do_test(median, block_size);
+    ASSERT_FALSE(m_block_not_too_big);
+  }
+
+
+  TEST_F(block_reward_and_current_block_size, handles_big_median_and_block_size)
+  {
+    size_t block_size = std::numeric_limits<uint32_t>::max();
+    size_t median = std::numeric_limits<uint32_t>::max() - 1;
+
+    do_test(median, block_size);
+    ASSERT_TRUE(m_block_not_too_big);
+    ASSERT_LT(m_block_reward, m_standard_block_reward);
+  }
+
 
   //--------------------------------------------------------------------------------------------------------------------
   class block_reward_and_last_block_sizes : public ::testing::Test
