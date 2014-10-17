@@ -23,7 +23,7 @@ http://www.microsoft.com/
 http://www.cmake.org/
 http://www.boost.org/
 
-To build, change to a directory where this file is located, and run this commands: 
+To build, change to a directory where this file is located, and run theas commands: 
 mkdir build
 cd build
 cmake -G "Visual Studio 11 Win64" ..

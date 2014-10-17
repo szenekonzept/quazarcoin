@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -591,18 +591,23 @@ namespace cryptonote
     return get_object_hash(t, res, blob_size);
   }
   //---------------------------------------------------------------
-  blobdata get_block_hashing_blob(const block& b)
+  bool get_block_hashing_blob(const block& b, blobdata& blob)
   {
-    blobdata blob = t_serializable_object_to_blob(static_cast<block_header>(b));
+    if(!t_serializable_object_to_blob(static_cast<const block_header&>(b), blob))
+      return false;
     crypto::hash tree_root_hash = get_tx_tree_hash(b);
-    blob.append((const char*)&tree_root_hash, sizeof(tree_root_hash ));
-    blob.append(tools::get_varint_data(b.tx_hashes.size()+1));
-    return blob;
+    blob.append(reinterpret_cast<const char*>(&tree_root_hash), sizeof(tree_root_hash));
+    blob.append(tools::get_varint_data(b.tx_hashes.size() + 1));
+
+    return true;
   }
   //---------------------------------------------------------------
   bool get_block_hash(const block& b, crypto::hash& res)
   {
-    return get_object_hash(get_block_hashing_blob(b), res);
+    blobdata blob;
+    if (!get_block_hashing_blob(b, blob))
+      return false;
+    return get_object_hash(blob, res);
   }
   //---------------------------------------------------------------
   crypto::hash get_block_hash(const block& b)
@@ -612,20 +617,30 @@ namespace cryptonote
     return p;
   }
   //---------------------------------------------------------------
-  bool generate_genesis_block(block& bl)
+  void generate_genesis_tx(transaction& tx) {
+    account_public_address ac = boost::value_initialized<account_public_address>();
+    std::vector<size_t> sz;
+    construct_miner_tx(0, 0, 0, 0, 0, ac, tx); // zero fee in genesis
+    blobdata txb = tx_to_blob(tx);
+  }
+
+  std::string get_genesis_tx_hex() {
+    transaction tx;
+
+    generate_genesis_tx(tx);
+    blobdata txb = tx_to_blob(tx);
+    std::string hex_tx_represent = string_tools::buff_to_hex_nodelimer(txb);
+
+    return hex_tx_represent;
+  }
+
+  bool generateGenesisBlock(block& bl)
   {
     //genesis block
     bl = boost::value_initialized<block>();
 
-
-    account_public_address ac = boost::value_initialized<account_public_address>();
-    std::vector<size_t> sz;
-    construct_miner_tx(0, 0, 0, 0, 0, ac, bl.miner_tx); // zero fee in genesis
-    blobdata txb = tx_to_blob(bl.miner_tx);
-    std::string hex_tx_represent = string_tools::buff_to_hex_nodelimer(txb);
-
     //hard code coinbase tx in genesis block, because "tru" generating tx use random, but genesis should be always the same
-    std::string genesis_coinbase_tx_hex = "013c01ff0001ffffffffffff01029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd08807121014c52c089aceeab13a8399d61408b337bace367fe5de10318bb4ca45259b76314";
+    std::string genesis_coinbase_tx_hex = GENESIS_COINBASE_TX_HEX;
 
     blobdata tx_bl;
     string_tools::parse_hexstr_to_binbuff(genesis_coinbase_tx_hex, tx_bl);
@@ -635,15 +650,26 @@ namespace cryptonote
     bl.minor_version = CURRENT_BLOCK_MINOR_VERSION;
     bl.timestamp = 0;
     bl.nonce = 70;
-    miner::find_nonce_for_given_block(bl, 1, 0);
+    //miner::find_nonce_for_given_block(bl, 1, 0);
     return true;
   }
+
+  bool generateTestnetGenesisBlock(cryptonote::block& b) {
+    if (!generateGenesisBlock(b)) {
+      return false;
+    }
+
+    b.nonce += 1;
+    return true;
+  }
+
   //---------------------------------------------------------------
-  bool get_block_longhash(const block& b, crypto::hash& res, uint64_t height)
+  bool get_block_longhash(crypto::cn_context &context, const block& b, crypto::hash& res, uint64_t height)
   {
-    block b_local = b; //workaround to avoid const errors with do_serialize
-    blobdata bd = get_block_hashing_blob(b);
-    crypto::cn_slow_hash(bd.data(), bd.size(), res);
+    blobdata bd;
+    if(!get_block_hashing_blob(b, bd))
+      return false;
+    crypto::cn_slow_hash(context, bd.data(), bd.size(), res);
     return true;
   }
   //---------------------------------------------------------------
@@ -667,10 +693,10 @@ namespace cryptonote
     return res;
   }
   //---------------------------------------------------------------
-  crypto::hash get_block_longhash(const block& b, uint64_t height)
+  crypto::hash get_block_longhash(crypto::cn_context &context, const block& b, uint64_t height)
   {
     crypto::hash p = null_hash;
-    get_block_longhash(b, p, height);
+    get_block_longhash(context, b, p, height);
     return p;
   }
   //---------------------------------------------------------------

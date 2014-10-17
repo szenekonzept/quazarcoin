@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -80,7 +80,7 @@ inline void get(std::istream &input, std::vector<char> &res) {
   }
 }
 
-#if !defined(_MSC_VER)
+#if !defined(_MSC_VER) || _MSC_VER >= 1800
 
 template<typename T, typename... TT>
 typename std::enable_if<(sizeof...(TT) > 0), void>::type

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -182,12 +182,7 @@ namespace cryptonote
     }
     std::list<crypto::hash> missed_txs;
     std::list<transaction> txs;
-    bool r = m_core.get_transactions(vh, txs, missed_txs);
-    if(!r)
-    {
-      res.status = "Failed";
-      return true;
-    }
+    m_core.get_transactions(vh, txs, missed_txs);
 
     BOOST_FOREACH(auto& tx, txs)
     {
@@ -354,7 +349,7 @@ namespace cryptonote
       return false;
     }
 
-    if(req.reserve_size > 255)
+    if(req.reserve_size > TX_EXTRA_NONCE_MAX_COUNT)
     {
       error_resp.code = CORE_RPC_ERROR_CODE_TOO_BIG_RESERVE_SIZE;
       error_resp.message = "To big reserved size, maximum 255";
@@ -380,31 +375,41 @@ namespace cryptonote
       LOG_ERROR("Failed to create block template");
       return false;
     }
+
     blobdata block_blob = t_serializable_object_to_blob(b);
     crypto::public_key tx_pub_key = cryptonote::get_tx_pub_key_from_extra(b.miner_tx);
     if(tx_pub_key == null_pkey)
     {
       error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
       error_resp.message = "Internal error: failed to create block template";
-      LOG_ERROR("Failed to  tx pub key in coinbase extra");
+      LOG_ERROR("Failed to find tx pub key in coinbase extra");
       return false;
     }
-    res.reserved_offset = slow_memmem((void*)block_blob.data(), block_blob.size(), &tx_pub_key, sizeof(tx_pub_key));
-    if(!res.reserved_offset)
+
+    if(0 < req.reserve_size)
     {
-      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
-      error_resp.message = "Internal error: failed to create block template";
-      LOG_ERROR("Failed to find tx pub key in blockblob");
-      return false;
+      res.reserved_offset = slow_memmem((void*)block_blob.data(), block_blob.size(), &tx_pub_key, sizeof(tx_pub_key));
+      if(!res.reserved_offset)
+      {
+        error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+        error_resp.message = "Internal error: failed to create block template";
+        LOG_ERROR("Failed to find tx pub key in blockblob");
+        return false;
+      }
+      res.reserved_offset += sizeof(tx_pub_key) + 3; //3 bytes: tag for TX_EXTRA_TAG_PUBKEY(1 byte), tag for TX_EXTRA_NONCE(1 byte), counter in TX_EXTRA_NONCE(1 byte)
+      if(res.reserved_offset + req.reserve_size > block_blob.size())
+      {
+        error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+        error_resp.message = "Internal error: failed to create block template";
+        LOG_ERROR("Failed to calculate offset for reserved bytes");
+        return false;
+      }
     }
-    res.reserved_offset += sizeof(tx_pub_key) + 3; //3 bytes: tag for TX_EXTRA_TAG_PUBKEY(1 byte), tag for TX_EXTRA_NONCE(1 byte), counter in TX_EXTRA_NONCE(1 byte)
-    if(res.reserved_offset + req.reserve_size > block_blob.size())
+    else
     {
-      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
-      error_resp.message = "Internal error: failed to create block template";
-      LOG_ERROR("Failed to calculate offset for ");
-      return false;
+      res.reserved_offset = 0;
     }
+
     res.blocktemplate_blob = string_tools::buff_to_hex_nodelimer(block_blob);
     res.status = CORE_RPC_STATUS_OK;
     return true;

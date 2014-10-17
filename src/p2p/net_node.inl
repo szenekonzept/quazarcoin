@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -50,7 +50,8 @@ namespace nodetool
     command_line::add_arg(desc, arg_p2p_add_priority_node);
     command_line::add_arg(desc, arg_p2p_add_exclusive_node);
     command_line::add_arg(desc, arg_p2p_seed_node);    
-    command_line::add_arg(desc, arg_p2p_hide_my_port);   }
+    command_line::add_arg(desc, arg_p2p_hide_my_port);
+  }
   //-----------------------------------------------------------------------------------
   template<class t_payload_net_handler>
   bool node_server<t_payload_net_handler>::init_config()
@@ -130,7 +131,7 @@ namespace nodetool
       if (!parse_peers_and_add_to_container(vm, arg_p2p_add_exclusive_node, m_exclusive_peers))
         return false;
     }
-    else if (command_line::has_arg(vm, arg_p2p_add_priority_node))
+    if (command_line::has_arg(vm, arg_p2p_add_priority_node))
     {
       if (!parse_peers_and_add_to_container(vm, arg_p2p_add_priority_node, m_priority_peers))
         return false;
@@ -191,10 +192,14 @@ namespace nodetool
   #define ADD_HARDCODED_SEED_NODE(addr) append_net_address(m_seed_nodes, addr);
   //-----------------------------------------------------------------------------------
   template<class t_payload_net_handler>
-  bool node_server<t_payload_net_handler>::init(const boost::program_options::variables_map& vm)
+  bool node_server<t_payload_net_handler>::init(const boost::program_options::variables_map& vm, bool testnet)
   {
-    ADD_HARDCODED_SEED_NODE("68.232.187.194:23080");
-    ADD_HARDCODED_SEED_NODE("66.85.133.150:23080");
+    if (!testnet) {
+      ADD_HARDCODED_SEED_NODE("185.24.233.122:23080");
+      ADD_HARDCODED_SEED_NODE("185.24.233.193:23080");
+    } else {
+      m_network_id.data[0] += 1;
+    }
 
     bool res = handle_command_line(vm);
     CHECK_AND_ASSERT_MES(res, false, "Failed to handle command line");
@@ -368,7 +373,7 @@ namespace nodetool
         return;
       }
 
-      if(rsp.node_data.network_id != BYTECOIN_NETWORK)
+      if(rsp.node_data.network_id != m_network_id)
       {
         LOG_ERROR_CCONTEXT("COMMAND_HANDSHAKE Failed, wrong network!  (" << epee::string_tools::get_str_from_guid_a(rsp.node_data.network_id) << "), closing connection.");
         return;
@@ -776,7 +781,7 @@ namespace nodetool
       node_data.my_port = m_external_port ? m_external_port : m_listenning_port;
     else 
       node_data.my_port = 0;
-    node_data.network_id = BYTECOIN_NETWORK;
+    node_data.network_id = m_network_id;
     return true;
   }
   //-----------------------------------------------------------------------------------
@@ -996,9 +1001,8 @@ namespace nodetool
   template<class t_payload_net_handler>
   int node_server<t_payload_net_handler>::handle_handshake(int command, typename COMMAND_HANDSHAKE::request& arg, typename COMMAND_HANDSHAKE::response& rsp, p2p_connection_context& context)
   {
-    if(arg.node_data.network_id != BYTECOIN_NETWORK)
+    if(arg.node_data.network_id != m_network_id)
     {
-
       LOG_PRINT_CCONTEXT_L0("WRONG NETWORK AGENT CONNECTED! id=" << epee::string_tools::get_str_from_guid_a(arg.node_data.network_id));
       drop_connection(context);
       return 1;

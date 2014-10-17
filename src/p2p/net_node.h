@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -53,13 +53,13 @@ namespace nodetool
   public:
     typedef t_payload_net_handler payload_net_handler;
     // Some code
-    node_server(t_payload_net_handler& payload_handler):m_payload_handler(payload_handler), m_allow_local_ip(false), m_hide_my_port(false)
-    {}
+    node_server(t_payload_net_handler& payload_handler) :
+      m_payload_handler(payload_handler), m_allow_local_ip(false), m_hide_my_port(false), m_network_id(QUAZARCOIN_NETWORK) {}
 
     static void init_options(boost::program_options::options_description& desc);
 
     bool run();
-    bool init(const boost::program_options::variables_map& vm);
+    bool init(const boost::program_options::variables_map& vm, bool testnet);
     bool deinit();
     bool send_stop_signal();
     uint32_t get_this_peer_port(){return m_listenning_port;}
@@ -203,6 +203,7 @@ namespace nodetool
     uint64_t m_peer_livetime;
     //keep connections to initiate some interactions
     net_server m_net_server;
+    boost::uuids::uuid m_network_id;
   };
 }
 

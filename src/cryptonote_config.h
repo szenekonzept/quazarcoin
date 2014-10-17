@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,6 +10,7 @@
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX         2 // addresses start with "2"
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
+       
 #define CURRENT_TRANSACTION_VERSION                     1
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
@@ -31,11 +32,9 @@
 
 
 #define ORPHANED_BLOCKS_MAX_COUNT                       100
-
-
 #define DIFFICULTY_TARGET                               120 // seconds
 #define DIFFICULTY_WINDOW                               720 // blocks
-#define DIFFICULTY_LAG                                  15  // !!!
+#define DIFFICULTY_LAG                                  15
 #define DIFFICULTY_CUT                                  60  // timestamps to cut after sorting
 #define DIFFICULTY_BLOCKS_COUNT                         DIFFICULTY_WINDOW + DIFFICULTY_LAG
 
@@ -44,7 +43,7 @@
 #define CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS       1
 
 
-#define DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN             DIFFICULTY_TARGET //just alias
+#define DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN             DIFFICULTY_TARGET
 
 
 #define BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT          10000  //by default, blocks ids count in synchronizing
@@ -75,11 +74,14 @@
 #define ALLOW_DEBUG_COMMANDS
 
 #define CRYPTONOTE_NAME                         "quazarcoin"
+#define CRYPTONOTE_BLOCKS_FILENAME              "blocks.dat"
+#define CRYPTONOTE_BLOCKINDEXES_FILENAME        "blockindexes.dat"
+#define CRYPTONOTE_BLOCKSCACHE_FILENAME         "blockscache.dat"
 #define CRYPTONOTE_POOLDATA_FILENAME            "poolstate.bin"
-#define CRYPTONOTE_BLOCKCHAINDATA_FILENAME      "blockchain.bin"
-#define CRYPTONOTE_BLOCKCHAINDATA_TEMP_FILENAME "blockchain.bin.tmp"
 #define P2P_NET_DATA_FILENAME                   "p2pstate.bin"
 #define MINER_CONFIG_FILE_NAME                  "miner_conf.json"
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
+
+#define GENESIS_COINBASE_TX_HEX                 "013c01ff0001ffffffffffff01029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd08807121014c52c089aceeab13a8399d61408b337bace367fe5de10318bb4ca45259b76314"
 

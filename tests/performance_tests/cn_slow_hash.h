@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -35,11 +35,12 @@ public:
   bool test()
   {
     crypto::hash hash;
-    crypto::cn_slow_hash(&m_data, sizeof(m_data), hash);
+    crypto::cn_slow_hash(m_context, &m_data, sizeof(m_data), hash);
     return hash == m_expected_hash;
   }
 
 private:
   data_t m_data;
   crypto::hash m_expected_hash;
+  crypto::cn_context m_context;
 };

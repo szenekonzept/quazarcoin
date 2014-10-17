@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -115,8 +115,8 @@ namespace cryptonote
   {
     struct request
     {
-      std::list<uint64_t> amounts;
-      uint64_t            outs_count;
+      std::vector<uint64_t> amounts;
+      uint64_t              outs_count;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(amounts)
         KV_SERIALIZE(outs_count)
@@ -393,7 +393,11 @@ namespace cryptonote
   
   struct COMMAND_RPC_GET_LAST_BLOCK_HEADER
   {
-    typedef std::list<std::string> request;
+    struct request
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
 
     struct response
     {
