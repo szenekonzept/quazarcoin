@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -39,8 +39,8 @@ namespace cryptonote
 
     bool run_console_handler();
 
-    bool new_wallet(const std::string &wallet_file, const std::string& password);
-    bool open_wallet(const std::string &wallet_file, const std::string& password);
+    bool new_wallet(const std::string &wallet_file, const std::string& password, bool testnet);
+    bool open_wallet(const std::string &wallet_file, const std::string& password, bool testnet);
     bool close_wallet();
 
     bool help(const std::vector<std::string> &args = std::vector<std::string>());

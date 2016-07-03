@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,6 +14,13 @@ namespace serialization
     bool serialize_vector_element(Archive& ar, T& e)
     {
       return ::do_serialize(ar, e);
+    }
+
+    template <typename Archive>
+    bool serialize_vector_element(Archive& ar, uint32_t& e)
+    {
+      ar.serialize_varint(e);
+      return true;
     }
 
     template <typename Archive>

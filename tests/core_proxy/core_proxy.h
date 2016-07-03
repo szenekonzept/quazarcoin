@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,13 +34,16 @@ namespace tests
       crypto::hash m_lastblk;
       std::list<cryptonote::transaction> txes;
 
+      crypto::cn_context m_cn_context;
+
       bool add_block(const crypto::hash &_id, const crypto::hash &_longhash, const cryptonote::block &_blk, const cryptonote::blobdata &_blob);
       void build_short_history(std::list<crypto::hash> &m_history, const crypto::hash &m_start);
-      
+
 
   public:
     void on_synchronized(){}
     uint64_t get_current_blockchain_height(){return 1;}
+    void set_target_blockchain_height(uint64_t) {}
     bool init(const boost::program_options::variables_map& vm);
     bool deinit(){return true;}
     bool get_short_chain_history(std::list<crypto::hash>& ids);

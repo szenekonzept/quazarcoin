@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -101,6 +101,7 @@ namespace mining
     std::string pool_session_id;
     simpleminer::job_details_native job = AUTO_VAL_INIT(job);
     uint64_t last_job_ticks = 0;
+    crypto::cn_context context;
 
     while(true)
     {
@@ -158,11 +159,11 @@ namespace mining
         //uint32_t c = (*((uint32_t*)&job.blob.data()[39]));
         ++(*((uint32_t*)&job.blob.data()[39]));
         crypto::hash h = cryptonote::null_hash;
-        crypto::cn_slow_hash(job.blob.data(), job.blob.size(), h);
+        crypto::cn_slow_hash(context, job.blob.data(), job.blob.size(), h);
         if(  ((uint32_t*)&h)[7] < job.target )
         {
           //found!
-          
+
           COMMAND_RPC_SUBMITSHARE::request submit_request = AUTO_VAL_INIT(submit_request);
           COMMAND_RPC_SUBMITSHARE::response submit_response = AUTO_VAL_INIT(submit_response);
           submit_request.id     = pool_session_id;

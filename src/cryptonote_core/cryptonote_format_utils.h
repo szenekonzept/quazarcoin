@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -74,18 +74,19 @@ namespace cryptonote
   crypto::hash get_transaction_hash(const transaction& t);
   bool get_transaction_hash(const transaction& t, crypto::hash& res);
   bool get_transaction_hash(const transaction& t, crypto::hash& res, size_t& blob_size);
-  blobdata get_block_hashing_blob(const block& b);
+  bool get_block_hashing_blob(const block& b, blobdata& blob);
   bool get_block_hash(const block& b, crypto::hash& res);
   crypto::hash get_block_hash(const block& b);
-  bool get_block_longhash(const block& b, crypto::hash& res, uint64_t height);
-  crypto::hash get_block_longhash(const block& b, uint64_t height);
-  bool generate_genesis_block(block& bl);
+  bool get_block_longhash(crypto::cn_context &context, const block& b, crypto::hash& res, uint64_t height);
+  crypto::hash get_block_longhash(crypto::cn_context &context, const block& b, uint64_t height);
+  bool generateGenesisBlock(block& bl);
+  bool generateTestnetGenesisBlock(block& bl);
+  std::string get_genesis_tx_hex();
   bool parse_and_validate_block_from_blob(const blobdata& b_blob, block& b);
   bool get_inputs_money_amount(const transaction& tx, uint64_t& money);
   uint64_t get_outs_money_amount(const transaction& tx);
   bool check_inputs_types_supported(const transaction& tx);
   bool check_outs_valid(const transaction& tx);
-  blobdata get_block_hashing_blob(const block& b);
   bool parse_amount(uint64_t& amount, const std::string& str_amount);
 
   bool check_money_overflow(const transaction& tx);

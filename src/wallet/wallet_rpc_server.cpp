@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,7 +32,11 @@ namespace tools
   bool wallet_rpc_server::run()
   {
     m_net_server.add_idle_handler([this](){
-      m_wallet.refresh();
+      try {
+        m_wallet.refresh();
+      } catch (const std::exception& ex) {
+        LOG_ERROR("Exception at while refreshing, what=" << ex.what());
+      }
       return true;
     }, 20000);
 
@@ -71,15 +75,27 @@ namespace tools
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_getaddress(const wallet_rpc::COMMAND_RPC_GET_ADDRESS::request& req, wallet_rpc::COMMAND_RPC_GET_ADDRESS::response& res, epee::json_rpc::error& er, connection_context& cntx)
+  {
+    try
+    {
+      res.address = m_wallet.get_account().get_public_address_str();
+    }
+    catch (std::exception& e)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = e.what();
+      return false;
+    }
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::on_transfer(const wallet_rpc::COMMAND_RPC_TRANSFER::request& req, wallet_rpc::COMMAND_RPC_TRANSFER::response& res, epee::json_rpc::error& er, connection_context& cntx)
   {
-
     std::vector<cryptonote::tx_destination_entry> dsts;
-    for (auto it = req.destinations.begin(); it != req.destinations.end(); it++)
-    {
+    for (auto it = req.destinations.begin(); it != req.destinations.end(); it++) {
       cryptonote::tx_destination_entry de;
-      if(!get_account_address_from_str(de.addr, it->address))
-      {
+      if (!get_account_address_from_str(de.addr, it->address)) {
         er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
         er.message = std::string("WALLET_RPC_ERROR_CODE_WRONG_ADDRESS: ") + it->address;
         return false;
@@ -87,27 +103,41 @@ namespace tools
       de.amount = it->amount;
       dsts.push_back(de);
     }
-    try
-    {
+
+    std::vector<uint8_t> extra;
+    if (!req.payment_id.empty()) {
+      std::string payment_id_str = req.payment_id;
+
+      crypto::hash payment_id;
+      if (!wallet2::parse_payment_id(payment_id_str, payment_id)) {
+        er.code = WALLET_RPC_ERROR_CODE_WRONG_PAYMENT_ID;
+        er.message = "Payment id has invalid format: \"" + payment_id_str + "\", expected 64-character string";
+        return false;
+      }
+
+      std::string extra_nonce;
+      cryptonote::set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
+      if (!cryptonote::add_extra_nonce_to_tx_extra(extra, extra_nonce)) {
+        er.code = WALLET_RPC_ERROR_CODE_WRONG_PAYMENT_ID;
+        er.message = "Something went wrong with payment_id. Please check its format: \"" + payment_id_str + "\", expected 64-character string";
+        return false;
+      }
+    }
+
+    try {
       cryptonote::transaction tx;
-      m_wallet.transfer(dsts, req.mixin, req.unlock_time, req.fee, std::vector<uint8_t>(), tx);
+      m_wallet.transfer(dsts, req.mixin, req.unlock_time, req.fee, extra, tx);
       res.tx_hash = boost::lexical_cast<std::string>(cryptonote::get_transaction_hash(tx));
       return true;
-    }
-    catch (const tools::error::daemon_busy& e)
-    {
+    } catch (const tools::error::daemon_busy& e) {
       er.code = WALLET_RPC_ERROR_CODE_DAEMON_IS_BUSY;
       er.message = e.what();
       return false;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
       er.code = WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR;
       er.message = e.what();
       return false;
-    }
-    catch (...)
-    {
+    } catch (...) {
       er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
       er.message = "WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR";
       return false;
@@ -163,6 +193,57 @@ namespace tools
       res.payments.push_back(rpc_payment);
     }
 
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_incoming_transfers(const wallet_rpc::COMMAND_RPC_INCOMING_TRANSFERS::request& req, wallet_rpc::COMMAND_RPC_INCOMING_TRANSFERS::response& res, epee::json_rpc::error& er, connection_context& cntx)
+  {
+    if(req.transfer_type.compare("all") != 0 && req.transfer_type.compare("available") != 0 && req.transfer_type.compare("unavailable") != 0)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_TRANSFER_TYPE;
+      er.message = "Transfer type must be one of: all, available, or unavailable";
+      return false;
+    }
+
+    bool filter = false;
+    bool available = false;
+    if (req.transfer_type.compare("available") == 0)
+    {
+      filter = true;
+      available = true;
+    }
+    else if (req.transfer_type.compare("unavailable") == 0)
+    {
+      filter = true;
+      available = false;
+    }
+
+    wallet2::transfer_container transfers;
+    m_wallet.get_transfers(transfers);
+
+    bool transfers_found = false;
+    for (const auto& td : transfers)
+    {
+      if (!filter || available != td.m_spent)
+      {
+        if (!transfers_found)
+        {
+          transfers_found = true;
+        }
+        wallet_rpc::transfer_details rpc_transfers;
+        rpc_transfers.amount       = td.amount();
+        rpc_transfers.spent        = td.m_spent;
+        rpc_transfers.global_index = td.m_global_output_index;
+        rpc_transfers.tx_hash      = boost::lexical_cast<std::string>(cryptonote::get_transaction_hash(td.m_tx));
+        res.transfers.push_back(rpc_transfers);
+      }
+    }
+
+    if (!transfers_found)
+    {
+      return false;
+    }
+  
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------

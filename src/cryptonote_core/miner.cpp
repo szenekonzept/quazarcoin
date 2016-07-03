@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,6 +15,8 @@
 #include "cryptonote_format_utils.h"
 #include "file_io_utils.h"
 #include "common/command_line.h"
+#include "crypto/hash.h"
+#include "crypto/random.h"
 #include "string_coding.h"
 #include "storages/portable_storage_template_helper.h"
 
@@ -42,9 +44,9 @@ namespace cryptonote
     m_thread_index(0),
     m_phandler(phandler),
     m_height(0),
-    m_pausers_count(0), 
+    m_pausers_count(0),
     m_threads_total(0),
-    m_starter_nonce(0), 
+    m_starter_nonce(0),
     m_last_hr_merge_time(0),
     m_hashes(0),
     m_do_print_hashrate(false),
@@ -83,7 +85,7 @@ namespace cryptonote
     block bl = AUTO_VAL_INIT(bl);
     difficulty_type di = AUTO_VAL_INIT(di);
     uint64_t height = AUTO_VAL_INIT(height);
-    cryptonote::blobdata extra_nonce; 
+    cryptonote::blobdata extra_nonce;
     if(m_extra_messages.size() && m_config.current_extra_message_index < m_extra_messages.size())
     {
       extra_nonce = m_extra_messages[m_config.current_extra_message_index];
@@ -109,7 +111,7 @@ namespace cryptonote
       merge_hr();
       return true;
     });
-    
+
     return true;
   }
   //-----------------------------------------------------------------------------------------------------
@@ -188,9 +190,18 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------------
-  bool miner::is_mining()
+  bool miner::is_mining() const
   {
     return !m_stop;
+  }
+  //-----------------------------------------------------------------------------------------------------
+  const account_public_address& miner::get_mining_address() const
+  {
+    return m_mine_address;
+  }
+  //-----------------------------------------------------------------------------------------------------
+  uint32_t miner::get_threads_count() const {
+    return m_threads_total;
   }
   //----------------------------------------------------------------------------------------------------- 
   bool miner::start(const account_public_address& adr, size_t threads_count, const boost::thread::attributes& attrs)
@@ -226,12 +237,14 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------------
-  uint64_t miner::get_speed()
+  uint64_t miner::get_speed() const
   {
-    if(is_mining())
+    if(is_mining()) {
       return m_current_hash_rate;
-    else
+    }
+    else {
       return 0;
+    }
   }
   //-----------------------------------------------------------------------------------------------------
   void miner::send_stop_signal()
@@ -252,12 +265,12 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------------
-  bool miner::find_nonce_for_given_block(block& bl, const difficulty_type& diffic, uint64_t height)
+  bool miner::find_nonce_for_given_block(crypto::cn_context &context, block& bl, const difficulty_type& diffic, uint64_t height)
   {
     for(; bl.nonce != std::numeric_limits<uint32_t>::max(); bl.nonce++)
     {
       crypto::hash h;
-      get_block_longhash(bl, h, height);
+      get_block_longhash(context, bl, h, height);
 
       if(check_hash(h, diffic))
       {
@@ -308,6 +321,7 @@ namespace cryptonote
     uint64_t height = 0;
     difficulty_type local_diff = 0;
     uint32_t local_template_ver = 0;
+    crypto::cn_context context;
     block b;
     while(!m_stop)
     {
@@ -319,7 +333,7 @@ namespace cryptonote
 
       if(local_template_ver != m_template_no)
       {
-        
+
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
         local_diff = m_diffic;
@@ -338,9 +352,9 @@ namespace cryptonote
 
       b.nonce = nonce;
       crypto::hash h;
-      get_block_longhash(b, h, height);
+      get_block_longhash(context, b, h, height);
 
-      if(check_hash(h, local_diff))
+      if(!m_stop && check_hash(h, local_diff))
       {
         //we lucky!
         ++m_config.current_extra_message_index;
@@ -354,6 +368,7 @@ namespace cryptonote
           epee::serialization::store_t_to_json_file(m_config, m_config_folder_path + "/" + MINER_CONFIG_FILE_NAME);
         }
       }
+
       nonce+=m_threads_total;
       ++m_hashes;
     }

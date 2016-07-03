@@ -1,8 +1,8 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#pragma once 
+#pragma once
 
 #include <boost/program_options.hpp>
 #include <atomic>
@@ -27,7 +27,7 @@ namespace cryptonote
   /************************************************************************/
   class miner
   {
-  public: 
+  public:
     miner(i_miner_handler* phandler);
     ~miner();
     bool init(const boost::program_options::variables_map& vm);
@@ -35,14 +35,16 @@ namespace cryptonote
     bool set_block_template(const block& bl, const difficulty_type& diffic, uint64_t height);
     bool on_block_chain_update();
     bool start(const account_public_address& adr, size_t threads_count, const boost::thread::attributes& attrs);
-    uint64_t get_speed();
+    uint64_t get_speed() const;
+    uint32_t get_threads_count() const;
     void send_stop_signal();
     bool stop();
-    bool is_mining();
+    bool is_mining() const;
+    const account_public_address& get_mining_address() const;
     bool on_idle();
     void on_synchronized();
     //synchronous analog (for fast calls)
-    static bool find_nonce_for_given_block(block& bl, const difficulty_type& diffic, uint64_t height);
+    static bool find_nonce_for_given_block(crypto::cn_context &context, block& bl, const difficulty_type& diffic, uint64_t height);
     void pause();
     void resume();
     void do_print_hashrate(bool do_hr);
@@ -51,7 +53,7 @@ namespace cryptonote
     bool worker_thread();
     bool request_block_template();
     void  merge_hr();
-    
+
     struct miner_config
     {
       uint64_t current_extra_message_index;
@@ -69,7 +71,7 @@ namespace cryptonote
     std::atomic<uint32_t> m_starter_nonce;
     difficulty_type m_diffic;
     uint64_t m_height;
-    volatile uint32_t m_thread_index; 
+    volatile uint32_t m_thread_index;
     volatile uint32_t m_threads_total;
     std::atomic<int32_t> m_pausers_count;
     epee::critical_section m_miners_count_lock;
@@ -82,7 +84,7 @@ namespace cryptonote
     epee::math_helper::once_a_time_seconds<2> m_update_merge_hr_interval;
     std::vector<blobdata> m_extra_messages;
     miner_config m_config;
-    std::string m_config_folder_path;    
+    std::string m_config_folder_path;
     std::atomic<uint64_t> m_last_hr_merge_time;
     std::atomic<uint64_t> m_hashes;
     std::atomic<uint64_t> m_current_hash_rate;

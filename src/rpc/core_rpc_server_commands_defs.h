@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -115,8 +115,8 @@ namespace cryptonote
   {
     struct request
     {
-      std::list<uint64_t> amounts;
-      uint64_t            outs_count;
+      std::vector<uint64_t> amounts;
+      uint64_t              outs_count;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(amounts)
         KV_SERIALIZE(outs_count)
@@ -214,6 +214,7 @@ namespace cryptonote
     {
       std::string status;
       uint64_t height;
+      uint64_t target_height;
       uint64_t difficulty;
       uint64_t tx_count;
       uint64_t tx_pool_size;
@@ -226,6 +227,7 @@ namespace cryptonote
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(status)
         KV_SERIALIZE(height)
+        KV_SERIALIZE(target_height)
         KV_SERIALIZE(difficulty)
         KV_SERIALIZE(tx_count)
         KV_SERIALIZE(tx_pool_size)
@@ -260,6 +262,34 @@ namespace cryptonote
     };
   };
 
+  //-----------------------------------------------
+  struct COMMAND_RPC_MINING_STATUS
+  {
+    struct request
+    {
+
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+
+
+    struct response
+    {
+      std::string status;
+      bool active;
+      uint64_t speed;
+      uint32_t threads_count;
+      std::string address;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(active)
+        KV_SERIALIZE(speed)
+        KV_SERIALIZE(threads_count)
+        KV_SERIALIZE(address)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
 
   //
   struct COMMAND_RPC_GETBLOCKCOUNT
@@ -363,7 +393,11 @@ namespace cryptonote
   
   struct COMMAND_RPC_GET_LAST_BLOCK_HEADER
   {
-    typedef std::list<std::string> request;
+    struct request
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
 
     struct response
     {

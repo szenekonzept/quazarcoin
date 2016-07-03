@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,23 +27,23 @@ namespace
 
   TEST_F(block_reward_and_already_generated_coins, handles_first_values)
   {
-    TEST_ALREADY_GENERATED_COINS(0, 70368744177663);
-    TEST_ALREADY_GENERATED_COINS(m_block_reward, 70368475742208);
-    TEST_ALREADY_GENERATED_COINS(UINT64_C(2756434948434199641), 59853779316998);
+    TEST_ALREADY_GENERATED_COINS(0, 8796093022207);
+    TEST_ALREADY_GENERATED_COINS(m_block_reward, 8796088827904);
+    TEST_ALREADY_GENERATED_COINS(UINT64_C(2756434948434199641), 7481722414624);
   }
 
   TEST_F(block_reward_and_already_generated_coins, correctly_steps_from_2_to_1)
   {
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((2 << 18) + 1), 2);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY -  (2 << 18)     , 2);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((2 << 18) - 1), 1);
+    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((2 << EMISSION_SPEED_FACTOR) + 1), 2);
+    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY -  (2 << EMISSION_SPEED_FACTOR), 2);
+    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((2 << EMISSION_SPEED_FACTOR) - 1), 1);
   }
 
   TEST_F(block_reward_and_already_generated_coins, handles_max)
   {
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((1 << 18) + 1), 1);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY -  (1 << 18)     , 1);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((1 << 18) - 1), 0);
+    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((1 << EMISSION_SPEED_FACTOR) + 1), 1);
+    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY -  (1 << EMISSION_SPEED_FACTOR), 1);
+    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((1 << EMISSION_SPEED_FACTOR) - 1), 0);
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -111,21 +111,46 @@ namespace
     ASSERT_FALSE(m_block_not_too_big);
   }
 
-  TEST_F(block_reward_and_current_block_size, fails_on_huge_median_size)
+  TEST_F(block_reward_and_current_block_size, handles_big_median)
   {
-#if !defined(NDEBUG)
-    size_t huge_size = std::numeric_limits<uint32_t>::max() + UINT64_C(2);
-    ASSERT_DEATH(do_test(huge_size, huge_size + 1), "");
-#endif
+    size_t block_size = 0;
+    size_t median = std::numeric_limits<uint32_t>::max();
+
+    do_test(median, block_size);
+    ASSERT_TRUE(m_block_not_too_big);
+    ASSERT_EQ(m_block_reward, m_standard_block_reward);
   }
 
-  TEST_F(block_reward_and_current_block_size, fails_on_huge_block_size)
+  TEST_F(block_reward_and_current_block_size, handles_big_block_size_ok)
   {
-#if !defined(NDEBUG)
-    size_t huge_size = std::numeric_limits<uint32_t>::max() + UINT64_C(2);
-    ASSERT_DEATH(do_test(huge_size - 2, huge_size), "");
-#endif
+    size_t block_size = std::numeric_limits<uint32_t>::max();
+    size_t median = block_size / 2 + 1;
+
+    do_test(median, block_size);
+    ASSERT_TRUE(m_block_not_too_big);
+    ASSERT_LT(m_block_reward, m_standard_block_reward);
   }
+
+  TEST_F(block_reward_and_current_block_size, handles_big_block_size_fail)
+  {
+    size_t block_size = std::numeric_limits<uint32_t>::max();
+    size_t median = block_size / 2 - 1;
+
+    do_test(median, block_size);
+    ASSERT_FALSE(m_block_not_too_big);
+  }
+
+
+  TEST_F(block_reward_and_current_block_size, handles_big_median_and_block_size)
+  {
+    size_t block_size = std::numeric_limits<uint32_t>::max();
+    size_t median = std::numeric_limits<uint32_t>::max() - 1;
+
+    do_test(median, block_size);
+    ASSERT_TRUE(m_block_not_too_big);
+    ASSERT_LT(m_block_reward, m_standard_block_reward);
+  }
+
 
   //--------------------------------------------------------------------------------------------------------------------
   class block_reward_and_last_block_sizes : public ::testing::Test

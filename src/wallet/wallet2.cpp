@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 The Cryptonote developers
+// Copyright (c) 2011-2014 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +12,7 @@ using namespace epee;
 
 #include "wallet2.h"
 #include "cryptonote_core/cryptonote_format_utils.h"
+#include "cryptonote_protocol/blobdatatype.h"
 #include "rpc/core_rpc_server_commands_defs.h"
 #include "misc_language.h"
 #include "cryptonote_core/cryptonote_basic_impl.h"
@@ -19,6 +20,7 @@ using namespace epee;
 #include "profile_tools.h"
 #include "crypto/crypto.h"
 #include "serialization/binary_utils.h"
+#include "cryptonote_protocol/blobdatatype.h"
 
 using namespace cryptonote;
 
@@ -372,9 +374,6 @@ bool wallet2::clear()
 {
   m_blockchain.clear();
   m_transfers.clear();
-  cryptonote::block b;
-  cryptonote::generate_genesis_block(b);
-  m_blockchain.push_back(get_block_hash(b));
   m_local_bc_height = 1;
   return true;
 }
@@ -387,7 +386,8 @@ bool wallet2::store_keys(const std::string& keys_file_name, const std::string& p
   wallet2::keys_file_data keys_file_data = boost::value_initialized<wallet2::keys_file_data>();
 
   crypto::chacha8_key key;
-  crypto::generate_chacha8_key(password, key);
+  crypto::cn_context cn_context;
+  crypto::generate_chacha8_key(cn_context, password, key);
   std::string cipher;
   cipher.resize(account_data.size());
   keys_file_data.iv = crypto::rand<crypto::chacha8_iv>();
@@ -422,7 +422,8 @@ void wallet2::load_keys(const std::string& keys_file_name, const std::string& pa
   THROW_WALLET_EXCEPTION_IF(!r, error::wallet_internal_error, "internal error: failed to deserialize \"" + keys_file_name + '\"');
 
   crypto::chacha8_key key;
-  crypto::generate_chacha8_key(password, key);
+  crypto::cn_context cn_context;
+  crypto::generate_chacha8_key(cn_context, password, key);
   std::string account_data;
   account_data.resize(keys_file_data.account_data.size());
   crypto::chacha8(keys_file_data.account_data.data(), keys_file_data.account_data.size(), key, keys_file_data.iv, &account_data[0]);
@@ -452,6 +453,10 @@ void wallet2::generate(const std::string& wallet_, const std::string& password)
   r = file_io_utils::save_string_to_file(m_wallet_file + ".address.txt", m_account.get_public_address_str());
   if(!r) LOG_PRINT_RED_L0("String with address text not saved");
 
+  cryptonote::block b;
+  generateGenesis(b);
+  m_blockchain.push_back(get_block_hash(b));
+
   store();
 }
 //----------------------------------------------------------------------------------------------------
@@ -463,6 +468,20 @@ void wallet2::wallet_exists(const std::string& file_path, bool& keys_file_exists
   boost::system::error_code ignore;
   keys_file_exists = boost::filesystem::exists(keys_file, ignore);
   wallet_file_exists = boost::filesystem::exists(wallet_file, ignore);
+}
+//----------------------------------------------------------------------------------------------------
+bool wallet2::parse_payment_id(const std::string& payment_id_str, crypto::hash& payment_id) {
+  cryptonote::blobdata payment_id_data;
+  if (!epee::string_tools::parse_hexstr_to_binbuff(payment_id_str, payment_id_data)) {
+    return false;
+  }
+
+  if (sizeof(crypto::hash) != payment_id_data.size()) {
+    return false;
+  }
+
+  payment_id = *reinterpret_cast<const crypto::hash*>(payment_id_data.data());
+  return true;
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::prepare_file_names(const std::string& file_path)
@@ -510,13 +529,23 @@ void wallet2::load(const std::string& wallet_, const std::string& password)
     m_account_public_address.m_view_public_key  != m_account.get_keys().m_account_address.m_view_public_key,
     error::wallet_files_doesnt_correspond, m_keys_file, m_wallet_file);
 
-  if(m_blockchain.empty())
-  {
-    cryptonote::block b;
-    cryptonote::generate_genesis_block(b);
-    m_blockchain.push_back(get_block_hash(b));
+  cryptonote::block genesis;
+  generateGenesis(genesis);
+  crypto::hash genesisHash = get_block_hash(genesis);
+
+  if (m_blockchain.empty()) {
+    m_blockchain.push_back(genesisHash);
+  } else {
+    checkGenesis(genesisHash);
   }
+
   m_local_bc_height = m_blockchain.size();
+}
+//----------------------------------------------------------------------------------------------------
+void wallet2::checkGenesis(const crypto::hash& genesisHash) {
+  std::string what("Genesis block missmatch. You probably use wallet without testnet flag with blockchain from test network or vice versa");
+
+  THROW_WALLET_EXCEPTION_IF(genesisHash != m_blockchain[0], error::wallet_internal_error, what);
 }
 //----------------------------------------------------------------------------------------------------
 void wallet2::store()
@@ -671,6 +700,14 @@ void wallet2::transfer(const std::vector<cryptonote::tx_destination_entry>& dsts
 {
   cryptonote::transaction tx;
   transfer(dsts, fake_outputs_count, unlock_time, fee, extra, tx);
+}
+//----------------------------------------------------------------------------------------------------
+void wallet2::generateGenesis(cryptonote::block& b) {
+  if (m_testnet) {
+    cryptonote::generateTestnetGenesisBlock(b);
+  } else {
+    cryptonote::generateGenesisBlock(b);
+  }
 }
 //----------------------------------------------------------------------------------------------------
 }
